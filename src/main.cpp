@@ -62,6 +62,36 @@ void addFeedingTime(int hour, int minute);
 void printDateTime(const RtcDateTime &dt);
 bool isLeapYear(uint16_t year);
 
+void printCurrentTime()
+{
+  RtcDateTime now = Rtc.GetDateTime();
+  printDateTime(now);
+  Serial.println();
+}
+
+void handleFeedingSchedule()
+{
+  RtcDateTime now = Rtc.GetDateTime();
+  for (int i = 0; i < feedingTimesCount; i++)
+  {
+    if (now.Hour() == feedingTimes[i].hour && now.Minute() == feedingTimes[i].minute)
+    {
+      for (int i = 0; i < dispensingLevel; i++)
+      {
+        openFeeder();
+      }
+      delay(60000); // Wait for one minute to avoid multiple triggers within the same minute
+    }
+  }
+}
+
+void handleFeedingTime(const String &message)
+{
+  int hour = message.substring(0, 2).toInt();
+  int minute = message.substring(3, 5).toInt();
+  addFeedingTime(hour, minute);
+}
+
 void setup()
 {
   // Initialize the serial communication for debugging
@@ -111,22 +141,11 @@ void loop()
   }
   client.loop();
 
-  RtcDateTime now = Rtc.GetDateTime();
-  printDateTime(now);
-  Serial.println();
+  // Get the current time
+  printCurrentTime();
 
-  // Check if it's time to feed
-  for (int i = 0; i < feedingTimesCount; i++)
-  {
-    if (now.Hour() == feedingTimes[i].hour && now.Minute() == feedingTimes[i].minute)
-    {
-      for (int i = 0; i < dispensingLevel; i++)
-      {
-        openFeeder();
-      }
-      delay(60000); // Wait for one minute to avoid multiple triggers within the same minute
-    }
-  }
+  // Check the feeding schedule
+  handleFeedingSchedule();
 
   // Variable to store the distance
   long duration, distance;
@@ -173,24 +192,22 @@ void loop()
   delay(200);
 }
 
-void handleFeedingTime(const String& message) {
-  int hour = message.substring(0, 2).toInt();
-  int minute = message.substring(3, 5).toInt();
-  addFeedingTime(hour, minute);
-}
-
-void handleDispensingLevel(const String& message) {
+void handleDispensingLevel(const String &message)
+{
   int level = message.toInt();
   setDispensingLevel(level);
 }
 
-void handleManualFeed(int times) {
-  for (int i = 0; i < times; i++) {
+void handleManualFeed(int times)
+{
+  for (int i = 0; i < times; i++)
+  {
     openFeeder();
   }
 }
 
-void callback(char *topic, byte *payload, unsigned int length) {
+void callback(char *topic, byte *payload, unsigned int length)
+{
   payload[length] = '\0'; // Null-terminate the payload
   String message = String((char *)payload);
   Serial.print("Message received on topic ");
@@ -198,37 +215,43 @@ void callback(char *topic, byte *payload, unsigned int length) {
   Serial.print(": ");
   Serial.println(message);
 
-  if (String(topic) == "pet-feeder/feeding-time") {
+  if (String(topic) == "pet-feeder/feeding-time")
+  {
     handleFeedingTime(message);
-  } else if (String(topic) == "pet-feeder/dispensing-level") {
+  }
+  else if (String(topic) == "pet-feeder/dispensing-level")
+  {
     handleDispensingLevel(message);
-  } else if (String(topic) == "pet-feeder/manual-feed") {
+  }
+  else if (String(topic) == "pet-feeder/manual-feed")
+  {
     int feedTimes = message.toInt();
     handleManualFeed(feedTimes);
   }
 }
 
+void subscribeToTopics()
+{
+  client.subscribe("pet-feeder/feeding-time");
+  client.subscribe("pet-feeder/dispensing-level");
+  client.subscribe("pet-feeder/manual-feed");
+}
+
 void reconnect()
 {
-  // Loop until we're reconnected
   while (!client.connected())
   {
     Serial.print("Attempting MQTT connection...");
-    // Attempt to connect
     if (client.connect("SAF_Pet_Feeder_Client"))
     {
       Serial.println("connected");
-      // Once connected, subscribe to the topics
-      client.subscribe("pet-feeder/feeding-time");
-      client.subscribe("pet-feeder/dispensing-level");
-      client.subscribe("pet-feeder/manual-feed");
+      subscribeToTopics();
     }
     else
     {
       Serial.print("failed, rc=");
       Serial.print(client.state());
       Serial.println(" try again in 5 seconds");
-      // Wait 5 seconds before retrying
       delay(5000);
     }
   }
@@ -343,12 +366,12 @@ void setRTCFromNTP()
   second = seconds % 60;
 
   // Calculate current year, month and day
-  while (days >= 365 + isLeapYear(year))
-  {
-    days -= 365 + isLeapYear(year);
+ while (days >= static_cast<unsigned long>(365 + isLeapYear(year)))
+{
+    days -= static_cast<unsigned long>(365 + isLeapYear(year));
     year++;
-  }
-  const uint8_t daysInMonth[] = {31, 28 + isLeapYear(year), 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+}
+  const uint8_t daysInMonth[] = {31, static_cast<uint8_t>(28 + isLeapYear(year)), 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
   for (month = 0; month < 12; month++)
   {
     if (days < daysInMonth[month])
