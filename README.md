@@ -37,7 +37,7 @@ This project implements an automated pet feeder system using Arduino, MQTT, and 
 4. Customize and expand the functionality as needed for your pet's requirements.
 
 ### Contributors:
-- [Your Name](https://github.com/yourusername): Project creator and main contributor.
+- [Irfan Saf](https://github.com/irfansaf): Project creator and main contributor.
 
 ### License:
 This project is licensed under the [MIT License](LICENSE).

@@ -173,8 +173,24 @@ void loop()
   delay(200);
 }
 
-void callback(char *topic, byte *payload, unsigned int length)
-{
+void handleFeedingTime(const String& message) {
+  int hour = message.substring(0, 2).toInt();
+  int minute = message.substring(3, 5).toInt();
+  addFeedingTime(hour, minute);
+}
+
+void handleDispensingLevel(const String& message) {
+  int level = message.toInt();
+  setDispensingLevel(level);
+}
+
+void handleManualFeed(int times) {
+  for (int i = 0; i < times; i++) {
+    openFeeder();
+  }
+}
+
+void callback(char *topic, byte *payload, unsigned int length) {
   payload[length] = '\0'; // Null-terminate the payload
   String message = String((char *)payload);
   Serial.print("Message received on topic ");
@@ -182,87 +198,13 @@ void callback(char *topic, byte *payload, unsigned int length)
   Serial.print(": ");
   Serial.println(message);
 
-  if (String(topic) == "pet-feeder/feeding-time")
-  {
-    int hour = message.substring(0, 2).toInt();
-    int minute = message.substring(3, 5).toInt();
-    addFeedingTime(hour, minute);
-  }
-  else if (String(topic) == "pet-feeder/dispensing-level")
-  {
-    int level = message.toInt();
-    setDispensingLevel(level);
-  }
-  else if (String(topic) == "pet-feeder/manual-feed")
-  {
-    // Switch case
-    switch (message.toInt())
-    {
-    case 1:
-      openFeeder();
-      break;
-    case 2:
-      for (int i = 0; i < 2; i++)
-      {
-        openFeeder();
-      }
-      break;
-    case 3:
-      for (int i = 0; i < 3; i++)
-      {
-        openFeeder();
-      }
-      break;
-    case 4:
-      for (int i = 0; i < 4; i++)
-      {
-        openFeeder();
-      }
-      break;
-    case 5:
-      for (int i = 0; i < 5; i++)
-      {
-        openFeeder();
-      }
-      break;
-    case 6:
-      for (int i = 0; i < 6; i++)
-      {
-        openFeeder();
-      }
-      break;
-
-    case 7:
-      for (int i = 0; i < 7; i++)
-      {
-        openFeeder();
-      }
-      break;
-
-    case 8:
-      for (int i = 0; i < 8; i++)
-      {
-        openFeeder();
-      }
-      break;
-
-    case 9:
-      for (int i = 0; i < 9; i++)
-      {
-        openFeeder();
-      }
-      break;
-
-    case 10:
-      for (int i = 0; i < 10; i++)
-      {
-        openFeeder();
-      }
-      break;
-
-    default:
-      break;
-    }
+  if (String(topic) == "pet-feeder/feeding-time") {
+    handleFeedingTime(message);
+  } else if (String(topic) == "pet-feeder/dispensing-level") {
+    handleDispensingLevel(message);
+  } else if (String(topic) == "pet-feeder/manual-feed") {
+    int feedTimes = message.toInt();
+    handleManualFeed(feedTimes);
   }
 }
 
