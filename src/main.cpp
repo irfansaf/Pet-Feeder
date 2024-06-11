@@ -20,7 +20,7 @@
 #define DISPENSE_STEPS 128
 
 // RTC Configuration
-ThreeWire myWire(D0, D5, D8); // IO, SCLK, CE
+ThreeWire myWire(D0, D5, D8); // DAT, SCLK, RSC
 RtcDS1302<ThreeWire> Rtc(myWire);
 
 // Variable to track if the object is detected
